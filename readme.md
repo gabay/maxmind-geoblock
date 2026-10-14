@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/gabay/maxmind-geoblock/workflows/Main/badge.svg)](https://github.com/gabay/maxmind-geoblock/actions)
+
 # MaxMind GeoBlock
 
 [Traefik](https://traefik.io) middleware plugin that allows or blocks requests based on the
