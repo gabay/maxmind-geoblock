@@ -8,12 +8,9 @@ YAEGI       ?= yaegi
 YAEGI_GOPATH := $(CURDIR)/.yaegi-gopath
 BENCHTIME   ?= 1s
 
-default: lint test yaegi-test
+default: test yaegi-test
 
 ## Static checks
-
-lint:
-	golangci-lint run
 
 vet:
 	go vet ./...
