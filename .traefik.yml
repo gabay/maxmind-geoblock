@@ -1,12 +1,25 @@
-displayName: Demo Plugin
+displayName: MaxMind GeoBlock
 type: middleware
 iconPath: .assets/icon.png
 
-import: github.com/traefik/plugindemo
+import: github.com/gabay/maxmind-geoblock
 
-summary: '[Demo] Add Request Header'
+summary: 'Allow or block requests by country and continent using a local MaxMind GeoIP2/GeoLite2 Country database'
 
+# Exercised by the Plugin Catalog: a missing database is not a startup error
+# (requests are treated as unknown until it appears), so any path works here.
 testData:
-  Headers:
-    X-Demo: test
-    X-URL: '{{URL}}'
+  dbPath: /var/lib/geoip/GeoLite2-Country.mmdb
+  allowedContinents:
+    - EU
+    - NA
+  deniedCountries:
+    - FR
+  allowedIPs:
+    - 127.0.0.1
+    - 10.0.0.0/8
+  allowUnknown: false
+  blockStatusCode: 403
+  trustedForwarders:
+    - 10.0.0.0/8
+  debug: false
