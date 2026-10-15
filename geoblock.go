@@ -61,10 +61,15 @@ type Config struct {
 	// checks entirely (e.g. "127.0.0.1", "10.0.0.0/8").
 	AllowedIPs []string `json:"allowedIPs,omitempty"`
 
+	// AllowLoopback lets requests through when client IP is a loopback address. Defaults to false.
+	AllowLoopback bool `json:"allowLoopback,omitempty"`
+
+	// AllowLocal lets requests through when client IP is a local address. Defaults to false.
+	AllowLocal bool `json:"allowLocal,omitempty"`
+
 	// AllowUnknown lets requests through when the client IP has no location
 	// data (the lookup failed, the IP is not in the database or the record
-	// has neither a country nor a continent). Defaults to false: such
-	// requests are blocked.
+	// has neither a country nor a continent). Defaults to false.
 	AllowUnknown bool `json:"allowUnknown,omitempty"`
 
 	// BlockStatusCode is the HTTP status code sent for blocked requests.
@@ -113,6 +118,8 @@ type GeoBlock struct {
 	deniedContinents  map[string]bool
 	allowedIPs        []netip.Prefix
 	trustedForwarders []netip.Prefix
+	allowLoopback     bool
+	allowLocal        bool
 	allowUnknown      bool
 	blockStatusCode   int
 	blockBody         []byte
@@ -145,6 +152,8 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 	g := &GeoBlock{
 		next:            next,
 		name:            name,
+		allowLoopback:   config.AllowLoopback,
+		allowLocal:      config.AllowLocal,
 		allowUnknown:    config.AllowUnknown,
 		blockStatusCode: config.BlockStatusCode,
 		debug:           config.Debug,
@@ -263,6 +272,22 @@ func (g *GeoBlock) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	valid := ip.IsValid()
 
 	if valid {
+		if g.allowLoopback && ip.IsLoopback() {
+			if g.debug {
+				g.logDebug(ip.String() + " allowed: " + reasonAllowedLoopback + " " + req.Method + " " + req.Host + req.URL.RequestURI())
+			}
+			g.next.ServeHTTP(rw, req)
+			return
+		}
+
+		if g.allowLocal && ip.IsPrivate() {
+			if g.debug {
+				g.logDebug(ip.String() + " allowed: " + reasonAllowedLocal + " " + req.Method + " " + req.Host + req.URL.RequestURI())
+			}
+			g.next.ServeHTTP(rw, req)
+			return
+		}
+
 		for i := range g.allowedIPs {
 			if g.allowedIPs[i].Contains(ip) {
 				if g.debug {
@@ -356,6 +381,8 @@ func (g *GeoBlock) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 // Decision reasons, exposed through debug logs.
 const (
 	reasonAllowed             = "no filter matched"
+	reasonAllowedLoopback     = "ip is loopback"
+	reasonAllowedLocal        = "ip is local"
 	reasonUnknown             = "unknown location"
 	reasonUnknownAllowUnknown = "unknown location (allowUnknown)"
 	reasonCountryNotAllowed   = "country not in allowedCountries"
@@ -445,6 +472,8 @@ func (g *GeoBlock) describe() string {
 	writeSet(&b, " deniedContinents=", g.deniedContinents)
 	b.WriteString(" allowedIPs=" + prefixesString(g.allowedIPs))
 	b.WriteString(" trustedForwarders=" + prefixesString(g.trustedForwarders))
+	b.WriteString(" allowLoopback=" + strconv.FormatBool(g.allowLoopback))
+	b.WriteString(" allowLocal=" + strconv.FormatBool(g.allowLocal))
 	b.WriteString(" allowUnknown=" + strconv.FormatBool(g.allowUnknown))
 	b.WriteString(" blockStatusCode=" + strconv.Itoa(g.blockStatusCode))
 	b.WriteString(" dbReloadInterval=" + g.reloadInterval.String())
