@@ -189,8 +189,6 @@ func New(ctx context.Context, next http.Handler, config *Config, name string) (h
 		return nil, errors.New("allowedContinents and deniedContinents are mutually exclusive")
 	case g.allowedCountries != nil && (g.allowedContinents != nil || g.deniedContinents != nil):
 		return nil, errors.New("allowedCountries cannot be combined with allowedContinents or deniedContinents")
-	case g.allowedCountries == nil && g.deniedCountries == nil && g.allowedContinents == nil && g.deniedContinents == nil:
-		return nil, errors.New("at least one of allowedCountries, deniedCountries, allowedContinents or deniedContinents must be configured")
 	}
 
 	if g.allowedIPs, err = parsePrefixes(config.AllowedIPs); err != nil {

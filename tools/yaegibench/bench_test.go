@@ -30,9 +30,11 @@ import (
 const (
 	moduleName = "github.com/gabay/maxmind-geoblock"
 
-	ipGB      = "81.2.69.142"
-	ipJP      = "2001:218::1"
-	ipUnknown = "10.1.2.3"
+	ipGB       = "81.2.69.142"
+	ipJP       = "2001:218::1"
+	ipLoopback = "127.0.0.1"
+	ipLocal    = "172.17.1.2"
+	ipUnknown  = "10.1.2.3"
 )
 
 // repoRoot is the plugin checkout (two levels up from this package).
@@ -83,8 +85,12 @@ func scenarios(tb testing.TB) []scenario {
 		{name: "denied-country+allowed-continent", config: with("deniedCountries", []string{"FR", "RU"}, "allowedContinents", []string{"EU", "NA"}), remoteAddr: ipGB + ":1234", want: 200},
 		{name: "ipv6", config: with("allowedCountries", []string{"JP"}), remoteAddr: "[" + ipJP + "]:1234", want: 200},
 		{name: "ipv6-nocache", config: with("allowedCountries", []string{"JP"}, "cacheSize", 0), remoteAddr: "[" + ipJP + "]:1234", want: 200},
-		{name: "unknown-ip", config: with("allowedCountries", []string{"GB"}), remoteAddr: ipUnknown + ":1234", want: 403},
-		{name: "unknown-ip-nocache", config: with("allowedCountries", []string{"GB"}, "cacheSize", 0), remoteAddr: ipUnknown + ":1234", want: 403},
+		{name: "loopback-ip", config: with(), remoteAddr: ipLoopback + ":1234", want: 403},
+		{name: "loopback-ip-nocache", config: with("cacheSize", 0), remoteAddr: ipLoopback + ":1234", want: 403},
+		{name: "local-ip", config: with(), remoteAddr: ipLocal + ":1234", want: 403},
+		{name: "local-ip-nocache", config: with("cacheSize", 0), remoteAddr: ipLocal + ":1234", want: 403},
+		{name: "unknown-ip", config: with(), remoteAddr: ipUnknown + ":1234", want: 403},
+		{name: "unknown-ip-nocache", config: with("cacheSize", 0), remoteAddr: ipUnknown + ":1234", want: 403},
 		{name: "allowed-ip-bypass", config: with("allowedCountries", []string{"US"}, "allowedIPs", []string{"10.0.0.0/8", ipGB}), remoteAddr: ipGB + ":1234", want: 200},
 		{name: "trusted-forwarder", config: with("allowedCountries", []string{"GB"}, "trustedForwarders", []string{"10.0.0.0/8"}), remoteAddr: "10.0.0.1:1234", headers: map[string]string{"X-Forwarded-For": ipGB + ", 10.0.0.2"}, want: 200},
 	}

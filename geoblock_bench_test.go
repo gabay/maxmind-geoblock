@@ -96,9 +96,19 @@ func BenchmarkIPv6NoCache(b *testing.B) {
 	runBench(b, h, "["+ipJP+"]:1234", nil, 200)
 }
 
+func BenchmarkLoopbackIP(b *testing.B) {
+	h := newBenchHandler(b, func(c *geoblock.Config) { c.AllowLoopback = true })
+	runBench(b, h, ipLoopback+":1234", nil, 200)
+}
+
+func BenchmarkLocalIP(b *testing.B) {
+	h := newBenchHandler(b, func(c *geoblock.Config) { c.AllowLocal = true })
+	runBench(b, h, ipLocal+":1234", nil, 200)
+}
+
 func BenchmarkUnknownIP(b *testing.B) {
-	h := newBenchHandler(b, func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"} })
-	runBench(b, h, ipUnknown+":1234", nil, 403)
+	h := newBenchHandler(b, func(c *geoblock.Config) { c.AllowUnknown = true })
+	runBench(b, h, ipUnknown+":1234", nil, 200)
 }
 
 func BenchmarkAllowedIP(b *testing.B) {

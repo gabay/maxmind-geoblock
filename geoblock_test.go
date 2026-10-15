@@ -98,18 +98,21 @@ func TestDecisions(t *testing.T) {
 		ip    string
 		want  int
 	}{
+		// no country/continent filters
+		{name: "no filters allowed", ip: ipGB, want: 200},
+		{name: "no filters loopback ip denied", ip: ipLoopback, want: 403},
+		{name: "no filters loopback ip allowLoopback allowed", setup: func(c *geoblock.Config) { c.AllowLoopback = true }, ip: ipLoopback, want: 200},
+		{name: "no filters local ip denide", ip: ipLocal, want: 403},
+		{name: "no filters local ip allowLocal allowed", setup: func(c *geoblock.Config) { c.AllowLocal = true }, ip: ipLocal, want: 200},
+		{name: "no filters unknown ip denied", ip: ipUnknown, want: 403},
+		{name: "no filters unknown ip allowUnknown allowed", setup: func(c *geoblock.Config) { c.AllowUnknown = true }, ip: ipUnknown, want: 200},
+
 		// allowedCountries
 		{name: "allowedCountries match", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB", "US"} }, ip: ipGB, want: 200},
 		{name: "allowedCountries lower-case match", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{" gb "} }, ip: ipGB, want: 200},
 		{name: "allowedCountries no match", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"} }, ip: ipUS, want: 403},
 		{name: "allowedCountries ipv6 match", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"JP"} }, ip: ipJP, want: 200},
 		{name: "allowedCountries continent-only record", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"} }, ip: ipEUOnly, want: 403},
-		{name: "allowedCountries loopback ip", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"} }, ip: ipLoopback, want: 403},
-		{name: "allowedCountries loopback ip allowLoopback", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"}; c.AllowLoopback = true }, ip: ipLoopback, want: 200},
-		{name: "allowedCountries local ip", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"} }, ip: ipLocal, want: 403},
-		{name: "allowedCountries local ip allowLocal", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"}; c.AllowLocal = true }, ip: ipLocal, want: 200},
-		{name: "allowedCountries unknown ip", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"} }, ip: ipUnknown, want: 403},
-		{name: "allowedCountries unknown ip allowUnknown", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"}; c.AllowUnknown = true }, ip: ipUnknown, want: 200},
 		{name: "allowedCountries record without geo", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"} }, ip: ipNoGeo, want: 403},
 		{name: "allowedCountries record without geo allowUnknown", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"GB"}; c.AllowUnknown = true }, ip: ipNoGeo, want: 200},
 
@@ -117,20 +120,11 @@ func TestDecisions(t *testing.T) {
 		{name: "deniedCountries match", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"} }, ip: ipGB, want: 403},
 		{name: "deniedCountries no match", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"} }, ip: ipUS, want: 200},
 		{name: "deniedCountries continent-only record", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"} }, ip: ipEUOnly, want: 200},
-		{name: "deniedCountries loopback ip", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"} }, ip: ipLoopback, want: 403},
-		{name: "deniedCountries loopback ip allowLoopback", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"}; c.AllowLoopback = true }, ip: ipLoopback, want: 200},
-		{name: "deniedCountries local ip", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"} }, ip: ipLocal, want: 403},
-		{name: "deniedCountries local ip allowLocal", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"}; c.AllowLocal = true }, ip: ipLocal, want: 200},
-		{name: "deniedCountries unknown ip", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"} }, ip: ipUnknown, want: 403},
-		{name: "deniedCountries unknown ip allowUnknown", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"GB"}; c.AllowUnknown = true }, ip: ipUnknown, want: 200},
 
 		// allowedContinents
 		{name: "allowedContinents match", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU"} }, ip: ipGB, want: 200},
 		{name: "allowedContinents no match", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU"} }, ip: ipUS, want: 403},
 		{name: "allowedContinents continent-only record", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU"} }, ip: ipEUOnly, want: 200},
-		{name: "allowedContinents loopback ip", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU"} }, ip: ipLoopback, want: 403},
-		{name: "allowedContinents local ip", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU"} }, ip: ipLocal, want: 403},
-		{name: "allowedContinents unknown ip", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU"} }, ip: ipUnknown, want: 403},
 
 		// deniedContinents
 		{name: "deniedContinents match", setup: func(c *geoblock.Config) { c.DeniedContinents = []string{"AS"} }, ip: ipJP, want: 403},
@@ -153,12 +147,9 @@ func TestDecisions(t *testing.T) {
 			c.AllowedCountries = []string{"US"}
 			c.AllowedIPs = []string{"2001:218::/32"}
 		}, ip: ipJP, want: 200},
-		{name: "allowedIPs loopback ip", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"US"}; c.AllowedIPs = []string{"127.0.0.0/8"} }, ip: ipLoopback, want: 200},
-		{name: "allowedIPs local ip", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"US"}; c.AllowedIPs = []string{"172.16.0.0/12"} }, ip: ipLocal, want: 200},
-		{name: "allowedIPs unknown ip", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"US"}; c.AllowedIPs = []string{"100.64.0.0/10"} }, ip: ipUnknown, want: 200},
 		{name: "allowedIPs no match", setup: func(c *geoblock.Config) {
 			c.AllowedCountries = []string{"US"}
-			c.AllowedIPs = []string{"100.64.0.0/10", "127.0.0.1"}
+			c.AllowedIPs = []string{"100.64.0.0/10"}
 		}, ip: ipGB, want: 403},
 
 		// status code
@@ -169,7 +160,9 @@ func TestDecisions(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			cfg := newConfig()
-			tc.setup(cfg)
+			if tc.setup != nil {
+				tc.setup(cfg)
+			}
 
 			resp := serve(t, cfg, withPort(tc.ip), nil)
 			if resp.code != tc.want {
@@ -283,7 +276,6 @@ func TestConfigValidation(t *testing.T) {
 		wantErr string
 	}{
 		{name: "missing dbPath", setup: func(c *geoblock.Config) { c.DBPath = " "; c.AllowedCountries = []string{"US"} }, wantErr: "dbPath is required"},
-		{name: "no filter", setup: func(_ *geoblock.Config) {}, wantErr: "at least one of"},
 		{name: "allowed+denied countries", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"US"}; c.DeniedCountries = []string{"FR"} }, wantErr: "mutually exclusive"},
 		{name: "allowed+denied continents", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU"}; c.DeniedContinents = []string{"AS"} }, wantErr: "mutually exclusive"},
 		{name: "allowed countries + allowed continents", setup: func(c *geoblock.Config) { c.AllowedCountries = []string{"US"}; c.AllowedContinents = []string{"EU"} }, wantErr: "cannot be combined"},
@@ -299,6 +291,7 @@ func TestConfigValidation(t *testing.T) {
 		{name: "negative cache size", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"US"}; c.CacheSize = -1 }, wantErr: "cacheSize"},
 
 		// Valid combinations.
+		{name: "no filter", setup: func(_ *geoblock.Config) {}},
 		{name: "denied countries + allowed continents", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"FR"}; c.AllowedContinents = []string{"EU"} }},
 		{name: "denied countries + denied continents", setup: func(c *geoblock.Config) { c.DeniedCountries = []string{"FR"}; c.DeniedContinents = []string{"AS"} }},
 		{name: "continents only", setup: func(c *geoblock.Config) { c.AllowedContinents = []string{"EU", "NA"} }},
@@ -510,7 +503,6 @@ func TestDebugLogging(t *testing.T) {
 	cfg.AllowedCountries = []string{"GB"}
 	cfg.AllowedIPs = []string{"1.2.3.4"}
 	cfg.AllowLocal = true
-
 
 	handler := newHandler(t, cfg)
 	send(handler, withPort(ipGB), nil)
