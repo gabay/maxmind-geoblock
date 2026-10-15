@@ -52,6 +52,8 @@ http:
             - 10.0.0.0/8
           trustedForwarders:
             - 10.0.0.0/8
+          allowLoopback: false
+          allowLocal: false
           allowUnknown: false
           blockStatusCode: 403
           debug: false
@@ -71,6 +73,8 @@ http:
 | `allowedContinents` | []string   | `[]`     | Only requests from these continents pass (`AF`, `AN`, `AS`, `EU`, `NA`, `OC`, `SA`). Mutually exclusive with `deniedContinents`. |
 | `deniedContinents`  | []string   | `[]`     | Requests from these continents are blocked. |
 | `allowedIPs`        | []string   | `[]`     | IPs or CIDRs that bypass all geo checks (`127.0.0.1`, `10.0.0.0/8`, `fd00::/8`, …). |
+| `allowLoopback`     | bool       | `false`  | Allow requests whose client IP is a loopback address. |
+| `allowLocal`        | bool       | `false`  | Allow requests whose client IP is a local address (e.g. from 10.0.0.0/8). |
 | `allowUnknown`      | bool       | `false`  | Allow requests whose client IP has no location data (not in the database, record without country and continent, lookup error, database not loaded, client IP undeterminable). By default such requests are blocked. |
 | `blockStatusCode`   | int        | `403`    | HTTP status code of blocked responses. Codes ≥ 400 get the status text as plain-text body. |
 | `trustedForwarders` | []string   | `[]`     | IPs or CIDRs of proxies trusted to set `X-Forwarded-For`. See [Client IP](#client-ip). |
@@ -99,8 +103,10 @@ When several lists are configured, a request is blocked as soon as **any** of th
 
 ### Decision logic
 
-1. The client IP is determined (see below). If it matches `allowedIPs`, the request is allowed and
-   nothing else is evaluated.
+1. The client IP is determined (see below).
+    - If `allowLoopback` is set and it is a loopback IP, it is allowed.
+    - If `allowLocal` is set and it is a local IP, it is allowed.
+    - If it matches `allowedIPs`, it is allowed.
 2. The IP is looked up in the database. The record's `country.iso_code` and `continent.code` are
    used (MaxMind's best estimate of where the IP is located, not the registration country).
 3. If **neither** a country nor a continent is known, the request is *unknown*: allowed only when
